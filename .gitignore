@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+app.db
+app.db-*
+instance/
+data/
+__pycache__/
+*.py[cod]
+faiss_store/
+.pytest_cache/
+.coverage
+htmlcov/

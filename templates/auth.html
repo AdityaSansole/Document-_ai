@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>{{ 'Create account' if mode == 'register' else 'Sign in' }} · Document AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='auth.css', v='20261120') }}">
+</head>
+<body>
+    <main class="auth-card">
+        <a class="brand" href="/"><span>D</span><strong>Document AI</strong></a>
+        <h1>{{ 'Create your account' if mode == 'register' else 'Welcome back' }}</h1>
+        <p class="subtitle">{{ 'Start searching across your documents.' if mode == 'register' else 'Sign in to continue.' }}</p>
+
+        <form id="authForm">
+            {% if mode == 'register' %}
+            <label>Full name<input id="name" type="text" autocomplete="name" required></label>
+            {% endif %}
+            <label>Email address<input id="email" type="email" autocomplete="email" required></label>
+            <label>Password<input id="password" type="password" autocomplete="{{ 'new-password' if mode == 'register' else 'current-password' }}" minlength="8" required></label>
+            <button type="submit">{{ 'Create account' if mode == 'register' else 'Sign in' }}</button>
+        </form>
+
+        <p id="authError" class="error" role="alert"></p>
+        <p class="switch">
+            {% if mode == 'register' %}
+            Already have an account? <a href="{{ url_for('login_page') }}">Sign in</a>
+            {% else %}
+            New here? <a href="{{ url_for('register_page') }}">Create account</a>
+            {% endif %}
+        </p>
+    </main>
+
+    <script>
+        const mode = {{ mode | tojson }};
+        document.getElementById("authForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const error = document.getElementById("authError");
+            error.textContent = "";
+            const body = {
+                email: document.getElementById("email").value,
+                password: document.getElementById("password").value
+            };
+            if (mode === "register") body.name = document.getElementById("name").value;
+
+            const response = await fetch(mode === "register" ? "/api/register" : "/api/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify(body)
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                error.textContent = data.error || "Authentication failed.";
+                return;
+            }
+            window.location.href = "/";
+        });
+    </script>
+</body>
+</html>

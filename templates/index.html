@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>Document AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='20261121') }}">
+</head>
+<body>
+    <main class="shell">
+        <aside class="sidebar">
+            <a class="brand" href="/" aria-label="Document AI home">
+                <span class="brand-mark">D</span>
+                <span>Document AI</span>
+            </a>
+
+            <button class="new-chat" id="newChat" type="button">
+                <span>＋</span> New chat
+            </button>
+
+            <div class="side-section">
+                <p class="side-label">RECENT</p>
+                <button class="recent-chat active" type="button">
+                    <span class="chat-icon">◫</span>
+                    <span>Knowledge search</span>
+                </button>
+            </div>
+
+            <button class="upload-button" id="uploadButton" type="button">＋ Add documents</button>
+            <input id="documentFiles" type="file" multiple accept=".pdf,.txt,.csv,.xlsx,.docx,.json" hidden>
+
+            <div class="profile">
+                <div class="avatar" id="userAvatar">?</div>
+                <div>
+                    <strong id="userName">USER</strong>
+                    <small>Local workspace</small>
+                </div>
+                <button id="logoutButton" class="logout-button" type="button" title="Sign out">↪</button>
+            </div>
+        </aside>
+
+        <section class="chat-area">
+            <header class="topbar">
+                <button class="menu-button" type="button" aria-label="Menu">☰</button>
+                <span class="status"><i></i> Documents connected</span>
+            </header>
+
+            <div class="messages" id="messages">
+                <div class="welcome">
+                    <div class="welcome-mark">D</div>
+                    <h1>What do you want to know?</h1>
+                    <p>Ask questions across your connected documents.</p>
+
+                    <div class="suggestions">
+                        <button type="button" data-prompt="Summarize the main topics in my documents">
+                            <span>✦</span>
+                            <span><strong>Summarize documents</strong><small>Find the key ideas</small></span>
+                        </button>
+                        <button type="button" data-prompt="What are the important details I should know?">
+                            <span>⌕</span>
+                            <span><strong>Discover insights</strong><small>Explore important details</small></span>
+                        </button>
+                        <button type="button" data-prompt="Compare the information across my documents">
+                            <span>⇄</span>
+                            <span><strong>Compare sources</strong><small>Find similarities and differences</small></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <form class="composer-wrap" id="chatForm">
+                <div class="composer">
+                    <textarea id="query" rows="1" placeholder="Ask about your documents..." aria-label="Question"></textarea>
+                    <button class="send-button" id="sendButton" type="submit" aria-label="Send">↑</button>
+                </div>
+                <p class="disclaimer">AI can make mistakes. Verify important information.</p>
+            </form>
+        </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='app.js', v='20261121') }}"></script>
+</body>
+</html>
