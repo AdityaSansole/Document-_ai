@@ -72,7 +72,22 @@ class RAGSearch:
         context = "\n\n".join(texts)
         if not context:
             return "No relevant documents found."
-        prompt = f"""Summarize the following context for the query: '{query}'\n\nContext:\n{context}\n\nSummary:"""
+        prompt = f"""Answer the user's question using only the provided context.
+
+Return a clean, well-structured response:
+- Start with a short bolded heading when useful.
+- Use short paragraphs and bullet points.
+- Use Markdown bold for important labels.
+- Do not use pipe characters or Markdown table separators.
+- Do not write <br> tags or decorative separator lines.
+- Keep the response concise and easy to scan.
+
+Question: {query}
+
+Context:
+{context}
+
+Answer:"""
         response = self.llm.invoke([prompt])
         return response.content
 

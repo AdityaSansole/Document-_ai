@@ -40,52 +40,112 @@ function addMessage(text, role) {
 }
 
 function formatInlineText(value) {
-    const escaped = escapeHtml(value);
+    let text = String(value).trim();
+    text = text.replace(/<br\s*\/?>/gi, "\n");
+
+    const escaped = escapeHtml(text);
     return escaped
         .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-        .replace(/\*(.+?)\*/g, "<em>$1</em>");
+        .replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, "<em>$1</em>")
+        .replace(/&lt;br\s*\/?>/gi, "<br>");
+}
+
+function cleanPipeArtifacts(line) {
+    let cleaned = line.trim();
+    if (/^\|?[-:|\s]+\|?$/.test(cleaned) && cleaned.includes("-")) {
+        return "";
+    }
+    cleaned = cleaned.replace(/^\s*\|\s*/, "").replace(/\s*\|\s*$/, "");
+    return cleaned.replace(/\s*\|\s*/g, " · ").trim();
 }
 
 function formatAssistantText(value) {
-    const lines = String(value).replace(/\r/g, "").split("\n");
+    const normalized = String(value)
+        .replace(/\r/g, "")
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/\[\s*([\w -]+)\s*\]/g, "$1")
+        .replace(/\n{3,}/g, "\n\n");
+
+    const lines = normalized.split("\n");
     const html = [];
     let listItems = [];
 
     const flushList = () => {
         if (!listItems.length) return;
-        html.push(`<ul>${listItems.map((item) => `<li>${formatInlineText(item)}</li>`).join("")}</ul>`);
+        html.push(`<ul class="answer-list">${listItems.map((item) => `<li>${formatInlineText(item)}</li>`).join("")}</ul>`);
         listItems = [];
     };
 
-    for (const rawLine of lines) {
-        const line = rawLine.trim();
+    for (let index = 0; index < lines.length; index++) {
+        let line = lines[index].trim();
         if (!line) {
             flushList();
             continue;
         }
 
-        const heading = line.match(/^#{1,3}\s+(.+)$/);
+        if (line.startsWith("|") && index + 1 < lines.length) {
+            const nextLine = lines[index + 1].trim();
+            if (/^\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?$/.test(nextLine)) {
+                const headers = line.replace(/^\|/, "").replace(/\|$/, "").split("|").map((cell) => cell.trim());
+                html.push('<div class="answer-table-wrap"><table class="answer-table"><thead><tr>');
+                html.push(headers.map((header) => `<th>${formatInlineText(header)}</th>`).join(""));
+                html.push("</tr></thead><tbody>");
+                index += 2;
+                while (index < lines.length) {
+                    const row = lines[index].trim();
+                    if (!row.startsWith("|")) break;
+                    if (/^\|?[-:|\s]+\|?$/.test(row)) {
+                        index++;
+                        continue;
+                    }
+                    const cells = row.replace(/^\|/, "").replace(/\|$/, "").split("|").map((cell) => cell.trim());
+                    html.push("<tr>");
+                    html.push(cells.map((cell) => `<td>${formatInlineText(cell)}</td>`).join(""));
+                    html.push("</tr>");
+                    index++;
+                }
+                html.push("</tbody></table></div>");
+                index--;
+                continue;
+            }
+        }
+
+        const separator = cleanPipeArtifacts(line);
+        if (!separator) {
+            flushList();
+            continue;
+        }
+
+        const heading = separator.match(/^#{1,3}\s+(.+)$/);
         if (heading) {
             flushList();
             html.push(`<h3>${formatInlineText(heading[1])}</h3>`);
             continue;
         }
 
-        const bullet = line.match(/^[-*]\s+(.+)$/);
+        const boldHeading = separator.match(/^\*\*(.+?):\*\*\s*(.*)$/);
+        if (boldHeading) {
+            flushList();
+            html.push(`<h3>${formatInlineText(boldHeading[1])}</h3>`);
+            if (boldHeading[2]) html.push(`<p>${formatInlineText(boldHeading[2])}</p>`);
+            continue;
+        }
+
+        const bullet = separator.match(/^[-*•]\s+(.+)$/);
         if (bullet) {
             listItems.push(bullet[1]);
             continue;
         }
 
-        const numbered = line.match(/^\d+[.)]\s+(.+)$/);
+        const numbered = separator.match(/^\d+[.)]\s+(.+)$/);
         if (numbered) {
             flushList();
-            html.push(`<p class="numbered-item">${formatInlineText(numbered[1])}</p>`);
+            html.push(`<p class="numbered-item"><strong>${numbered[1] ? String(lines[index].match(/^\d+[.)]/)?.[0] || "") : ""}</strong> ${formatInlineText(numbered[1])}</p>`);
             continue;
         }
 
         flushList();
-        html.push(`<p>${formatInlineText(line)}</p>`);
+        html.push(`<p>${formatInlineText(separator)}</p>`);
     }
 
     flushList();
